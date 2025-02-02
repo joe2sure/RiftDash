@@ -5,8 +5,8 @@ import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:rift_dash/actors/player.dart';
-import 'package:rift_dash/level/level.dart';
+import 'package:rift_dash/components/player.dart';
+import 'package:rift_dash/components/level.dart';
 
 class RiftDash extends FlameGame
     with HasKeyboardHandlerComponents, DragCallbacks {
@@ -22,7 +22,7 @@ class RiftDash extends FlameGame
     // Load all images into cache
     await images.loadAllImages();
 
-    final world = Level(levelName: 'level-01', player: player);
+    final world = Level(levelName: 'level-02', player: player);
 
     cam = CameraComponent.withFixedResolution(
         world: world, width: 640, height: 360);
@@ -66,27 +66,27 @@ class RiftDash extends FlameGame
   void updateJoystick() {
     switch (joystick.direction) {
       case JoystickDirection.left:
-      player.playerDirection = PlayerDirection.left;
+      player.horizontalMovement = -1;
       break;
       case JoystickDirection.up:
         // TODO: Handle this case.
         throw UnimplementedError();
       case JoystickDirection.upLeft:
-      player.playerDirection = PlayerDirection.left;
+      player.horizontalMovement = -1;
       case JoystickDirection.upRight:
-      player.playerDirection = PlayerDirection.right;
+      player.horizontalMovement = 1;
       case JoystickDirection.right:
-      player.playerDirection = PlayerDirection.right;
+      player.horizontalMovement = 1;
         throw UnimplementedError();
       case JoystickDirection.down:
         // TODO: Handle this case.
         throw UnimplementedError();
       case JoystickDirection.downRight:
-      player.playerDirection = PlayerDirection.right;
+      player.horizontalMovement = 1;
       case JoystickDirection.downLeft:
-      player.playerDirection = PlayerDirection.left;
+      player.horizontalMovement = -1;
       case JoystickDirection.idle:
-      player.playerDirection = PlayerDirection.none;
+      player.horizontalMovement = 0;
       
     }
   }

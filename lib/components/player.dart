@@ -8,8 +8,10 @@ import 'package:flutter/src/services/hardware_keyboard.dart';
 import 'package:flutter/src/services/keyboard_key.g.dart';
 import 'package:rift_dash/rift_dash.dart';
 
+import 'collision_block.dart';
+
 enum PlayerState { idle, running}
-enum PlayerDirection { left, right, none }
+
 
 
 class Player extends SpriteAnimationGroupComponent with HasGameRef<RiftDash>, KeyboardHandler {
@@ -19,38 +21,37 @@ class Player extends SpriteAnimationGroupComponent with HasGameRef<RiftDash>, Ke
   late final SpriteAnimation idleAnimation;
   late final SpriteAnimation runningAnimation;
   final double stepTime = 0.05;
-  bool isFacingRight = true;
 
-  PlayerDirection playerDirection = PlayerDirection.none;
+
+  double horizontalMovement = 0.0;
   double moveSpeed = 100;
   Vector2 velocity = Vector2.zero();
+  List<CollisionBlock> collisionBlocks = [];
 
   @override
   FutureOr<void> onLoad() {
     _loadAllAnimations();
+    debugMode = true; // to make player collision visible
     return super.onLoad();
   }
 
   @override
   void update(double dt) {
+    _updatePlayerState();
     _updatePlayerMovement(dt);
     super.update(dt);
   }
 
   @override
   bool onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
+    horizontalMovement = 0;
+
     final isLeftKeyPressed = keysPressed.contains(LogicalKeyboardKey.keyA) || keysPressed.contains(LogicalKeyboardKey.arrowLeft,);
     final isRightKeyPressed = keysPressed.contains(LogicalKeyboardKey.keyD) || keysPressed.contains(LogicalKeyboardKey.arrowRight,);
 
-    if(isLeftKeyPressed && isRightKeyPressed) {
-      playerDirection = PlayerDirection.none;
-    }else if(isLeftKeyPressed) {
-      playerDirection = PlayerDirection.left;
-    }else if (isRightKeyPressed) {
-      playerDirection = PlayerDirection.right;
-    }else{
-      playerDirection = PlayerDirection.none;
-    }
+    horizontalMovement += isLeftKeyPressed ? -1 : 0;
+    horizontalMovement += isRightKeyPressed ? 1 : 0;
+
     return super.onKeyEvent(event, keysPressed);
   }
 
@@ -77,46 +78,56 @@ class Player extends SpriteAnimationGroupComponent with HasGameRef<RiftDash>, Ke
       ),
     );
   }
-  
-  void _updatePlayerMovement(double dt) {
-    double dirX = 0.0;
-    switch (playerDirection) {  // Changed from PlayerDirection to playerDirection
-      case PlayerDirection.left:
-        if(isFacingRight) {
-          flipHorizontallyAroundCenter();
-          isFacingRight = false;
-        }
-        current = PlayerState.running;
-        dirX -= moveSpeed;
-        break;
-      case PlayerDirection.right:
-        if(!isFacingRight) {
-          flipHorizontallyAroundCenter();
-          isFacingRight = true;
-        }
-        current = PlayerState.running;
-        dirX += moveSpeed;
-        break;
-      case PlayerDirection.none:
-        current = PlayerState.idle;
-        break;
+
+  void _updatePlayerState() {
+    PlayerState playerState = PlayerState.idle;
+
+    if(velocity.x < 0 && scale.x > 0) {
+      flipHorizontallyAroundCenter();
+    }else if (velocity.x > 0 && scale.x < 0){
+      flipHorizontallyAroundCenter();
     }
 
-    velocity = Vector2(dirX, 0.0);
-    position += velocity * dt;
+    // check if moving is set to running
+    if (velocity.x > 0 || velocity.x < 0) playerState = PlayerState.running;
+
+    current = playerState;
   }
+
+  
+  void _updatePlayerMovement(double dt) {
+
+    velocity.x = horizontalMovement * moveSpeed;
+    position.x += velocity.x * dt;
+  }
+  
+  
 }
 
-// class Player extends SpriteAnimationGroupComponent with HasGameRef<RiftDash> {
+
+// // ignore_for_file: constant_pattern_never_matches_value_type
+
+// import 'dart:async';
+
+// import 'package:flame/components.dart';
+// import 'package:flutter/src/services/hardware_keyboard.dart';
+// import 'package:flutter/src/services/keyboard_key.g.dart';
+// import 'package:rift_dash/rift_dash.dart';
+
+// enum PlayerState { idle, running}
+// enum PlayerDirection { left, right, none }
+
+
+// class Player extends SpriteAnimationGroupComponent with HasGameRef<RiftDash>, KeyboardHandler {
 //   String character;
-//   Player({position, required this.character}) : super(position: position);
+//   Player({position, this.character = 'Ninja Frog'}) : super(position: position);
 
 //   late final SpriteAnimation idleAnimation;
 //   late final SpriteAnimation runningAnimation;
 //   final double stepTime = 0.05;
 //   bool isFacingRight = true;
 
-//   PlayerDirection playerDirection = PlayerDirection.right;
+//   PlayerDirection playerDirection = PlayerDirection.none;
 //   double moveSpeed = 100;
 //   Vector2 velocity = Vector2.zero();
 
@@ -132,24 +143,34 @@ class Player extends SpriteAnimationGroupComponent with HasGameRef<RiftDash>, Ke
 //     super.update(dt);
 //   }
 
-//   void _loadAllAnimations() {
-//     // idleAnimation = SpriteAnimation.fromFrameData(
-//     //   game.images.fromCache('Main Character/Ninja Frog/idle (32x32).png'),
-//     //   SpriteAnimationData.sequenced(
-//     //     amount: 11,
-//     //     stepTime: stepTime,
-//     //     textureSize: Vector2.all(32),
-//     //   ),
-//     // );
+//   @override
+//   bool onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
+//     final isLeftKeyPressed = keysPressed.contains(LogicalKeyboardKey.keyA) || keysPressed.contains(LogicalKeyboardKey.arrowLeft,);
+//     final isRightKeyPressed = keysPressed.contains(LogicalKeyboardKey.keyD) || keysPressed.contains(LogicalKeyboardKey.arrowRight,);
 
+//     if(isLeftKeyPressed && isRightKeyPressed) {
+//       playerDirection = PlayerDirection.none;
+//     }else if(isLeftKeyPressed) {
+//       playerDirection = PlayerDirection.left;
+//     }else if (isRightKeyPressed) {
+//       playerDirection = PlayerDirection.right;
+//     }else{
+//       playerDirection = PlayerDirection.none;
+//     }
+//     return super.onKeyEvent(event, keysPressed);
+//   }
+
+//   void _loadAllAnimations() {
 //     idleAnimation = _spriteAnimation('Run', 12);
 //     runningAnimation = _spriteAnimation('Run', 12);
 
 //     // list of all animations
-//     animations = {PlayerState.idle: idleAnimation};
+//     animations = {
+//       PlayerState.idle: idleAnimation,
+//       PlayerState.running: runningAnimation  // Add running animation to the map
+//     };
 
-//     // set current animation
-//     current = PlayerState.idle; // also can set current animation to be ===> current = PlayerState.running to show that its running
+//     current = PlayerState.idle;
 //   }
 
 //   SpriteAnimation _spriteAnimation(String state, int amount) {
@@ -165,27 +186,26 @@ class Player extends SpriteAnimationGroupComponent with HasGameRef<RiftDash>, Ke
   
 //   void _updatePlayerMovement(double dt) {
 //     double dirX = 0.0;
-//     switch (PlayerDirection) {
+//     switch (playerDirection) {  // Changed from PlayerDirection to playerDirection
 //       case PlayerDirection.left:
-//       if(isFacingRight) {
-//         flipHorizontallyAroundCenter();
-//         isFacingRight = false;
-//       }
-//       current = PlayerState.running;
-//       dirX -= moveSpeed;
-//       break;
+//         if(isFacingRight) {
+//           flipHorizontallyAroundCenter();
+//           isFacingRight = false;
+//         }
+//         current = PlayerState.running;
+//         dirX -= moveSpeed;
+//         break;
 //       case PlayerDirection.right:
-//       if(!isFacingRight) {
-//         flipHorizontallyAroundCenter();
-//         isFacingRight = true;
-//       }
-//       current = PlayerState.running;
-//       dirX += moveSpeed;
-//       break;
+//         if(!isFacingRight) {
+//           flipHorizontallyAroundCenter();
+//           isFacingRight = true;
+//         }
+//         current = PlayerState.running;
+//         dirX += moveSpeed;
+//         break;
 //       case PlayerDirection.none:
-//       current = PlayerState.idle;
-//       break;
-//       default:
+//         current = PlayerState.idle;
+//         break;
 //     }
 
 //     velocity = Vector2(dirX, 0.0);
